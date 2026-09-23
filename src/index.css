@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-bg text-textmain font-sans antialiased dark:bg-slate-950;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+}
+
+:root {
+  --legend-color: #1E293B;
+  --tooltip-bg: #FFFFFF;
+  --tooltip-border: #E2E8F0;
+  --tooltip-text: #1E293B;
+}
+
+.dark {
+  --legend-color: #E2E8F0;
+  --tooltip-bg: #1E293B;
+  --tooltip-border: #334155;
+  --tooltip-text: #F1F5F9;
+}
