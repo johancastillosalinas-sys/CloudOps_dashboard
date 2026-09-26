@@ -1,19 +1,20 @@
 import * as Icons from "lucide-react";
 import { StatCardData } from "../types/cloud";
+import Sparkline from "./dashboard/Sparkline";
 
 const colorMap = {
-  primary: { bg: "bg-blue-50 dark:bg-blue-500/10", text: "text-primary" },
-  security: { bg: "bg-green-50 dark:bg-green-500/10", text: "text-security" },
-  costs: { bg: "bg-amber-50 dark:bg-amber-500/10", text: "text-costs" },
-  alert: { bg: "bg-red-50 dark:bg-red-500/10", text: "text-alert" },
+  primary: { bg: "bg-blue-50 dark:bg-blue-500/10", text: "text-primary", hex: "#2563EB" },
+  security: { bg: "bg-green-50 dark:bg-green-500/10", text: "text-security", hex: "#16A34A" },
+  costs: { bg: "bg-amber-50 dark:bg-amber-500/10", text: "text-costs", hex: "#F59E0B" },
+  alert: { bg: "bg-red-50 dark:bg-red-500/10", text: "text-alert", hex: "#DC2626" },
 };
 
-export default function StatCard({ titulo, valor, subtitulo, icono, color, tendencia }: StatCardData) {
+export default function StatCard({ titulo, valor, subtitulo, icono, color, tendencia, sparkline }: StatCardData) {
   const Icon = (Icons as unknown as Record<string, Icons.LucideIcon>)[icono] ?? Icons.Circle;
   const c = colorMap[color];
 
   return (
-    <div className="rounded-card border border-border bg-card p-5 shadow-card dark:border-slate-700 dark:bg-slate-900">
+    <div className="card-transition rounded-card border border-border bg-card p-5 shadow-card dark:border-slate-700 dark:bg-slate-900">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm font-medium text-textsec dark:text-slate-400">{titulo}</p>
@@ -24,8 +25,12 @@ export default function StatCard({ titulo, valor, subtitulo, icono, color, tende
           <Icon className={c.text} size={20} />
         </div>
       </div>
-      {tendencia && (
-        <p className="mt-3 text-xs font-medium text-security">{tendencia}</p>
+      {sparkline && sparkline.length > 1 ? (
+        <div className="-mx-1 mt-2">
+          <Sparkline data={sparkline} color={c.hex} id={`spark-${titulo.replace(/\s+/g, "-")}`} />
+        </div>
+      ) : (
+        tendencia && <p className="mt-3 text-xs font-medium text-security">{tendencia}</p>
       )}
     </div>
   );

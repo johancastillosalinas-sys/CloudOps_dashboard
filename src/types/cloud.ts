@@ -22,6 +22,8 @@ export interface Region {
   latencia: string;
 }
 
+export type EstadoPropuesta = "borrador" | "revision" | "aprobada";
+
 export interface PropuestaCloud {
   id: string;
   nombreSolucion: string;
@@ -33,6 +35,8 @@ export interface PropuestaCloud {
   serviciosSeleccionados: string[];
   objetivoMigracion: string;
   fecha: string;
+  estado: EstadoPropuesta;
+  costoMensualEstimado: number;
 }
 
 export interface ItemCosto {
@@ -68,4 +72,5 @@ export interface StatCardData {
   icono: string;
   color: "primary" | "security" | "costs" | "alert";
   tendencia?: string;
+  sparkline?: number[];
 }

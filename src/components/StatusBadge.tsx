@@ -1,23 +1,23 @@
 import { CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
 import { EstadoIndicador } from "../types/cloud";
 
-const config: Record<
+const config: Record <
   EstadoIndicador,
   { label: string; classes: string; Icon: typeof CheckCircle2 }
 > = {
   correcto: {
     label: "Correcto",
-    classes: "bg-green-50 text-security border-green-200",
+    classes: "bg-green-50 text-security border-green-200 dark:bg-green-500/10 dark:border-green-500/30",
     Icon: CheckCircle2,
   },
   revision: {
     label: "Requiere revisión",
-    classes: "bg-amber-50 text-costs border-amber-200",
+    classes: "bg-amber-50 text-costs border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/30",
     Icon: AlertTriangle,
   },
   problema: {
     label: "Problema",
-    classes: "bg-red-50 text-alert border-red-200",
+    classes: "bg-red-50 text-alert border-red-200 dark:bg-red-500/10 dark:border-red-500/30",
     Icon: XCircle,
   },
 };

@@ -16,6 +16,7 @@ import Infrastructure from "./pages/Infrastructure";
 import Security from "./pages/Security";
 import NetworkPage from "./pages/Network";
 import Services from "./pages/Services";
+import ServiceDetail from "./pages/ServiceDetail";
 
 const mobileLinks = [
   { to: "/dashboard", Icon: LayoutDashboard },
@@ -41,6 +42,7 @@ export default function App() {
           <Route path="/security" element={<Security />} />
           <Route path="/network" element={<NetworkPage />} />
           <Route path="/services" element={<Services />} />
+          <Route path="/services/:id" element={<ServiceDetail />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </div>
