@@ -71,3 +71,31 @@ body {
   transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease,
     border-color 0.2s ease;
 }
+
+:root {
+  --net-canvas: #FFFFFF;
+  --net-vpc-bg: #F8FAFC;
+  --net-vpc-border: #94A3B8;
+  --net-az-bg: #EFF6FF;
+  --net-az-border: #93C5FD;
+  --net-subnet-bg: #FFFFFF;
+  --net-subnet-border: #CBD5E1;
+  --net-node-bg: #FFFFFF;
+  --net-text: #1E293B;
+  --net-subtext: #64748B;
+  --net-line: #CBD5E1;
+}
+
+.dark {
+  --net-canvas: transparent;
+  --net-vpc-bg: rgba(148, 163, 184, 0.06);
+  --net-vpc-border: #475569;
+  --net-az-bg: rgba(37, 99, 235, 0.08);
+  --net-az-border: rgba(96, 165, 250, 0.4);
+  --net-subnet-bg: rgba(30, 41, 59, 0.6);
+  --net-subnet-border: #334155;
+  --net-node-bg: #1E293B;
+  --net-text: #F1F5F9;
+  --net-subtext: #94A3B8;
+  --net-line: #475569;
+}
