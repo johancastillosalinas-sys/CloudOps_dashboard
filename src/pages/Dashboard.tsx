@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   PieChart,
   Pie,
@@ -12,17 +12,20 @@ import {
   YAxis,
   CartesianGrid,
 } from "recharts";
+import { Download } from "lucide-react";
 import Header from "../components/Header";
 import StatCard from "../components/StatCard";
 import QuickActions from "../components/dashboard/QuickActions";
 import RecentActivity from "../components/dashboard/RecentActivity";
 import CategoryBreakdown from "../components/dashboard/CategoryBreakdown";
+import DashboardReportPreviewModal from "../components/dashboard/DashboardReportPreviewModal";
 import { awsServices, regiones, indicadoresSeguridad } from "../data/awsServices";
 import { costItemsSeed } from "../data/costSeed";
 import { ItemCosto, PropuestaCloud } from "../types/cloud";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { useRegion } from "../context/RegionContext";
 import { costosPorCategoria, generarTendencia } from "../utils/costCategoryBreakdown";
+import { construirActividad } from "../utils/dashboardActivity";
 import { fmt } from "../utils/reportExport";
 
 const COLORS = ["#2563EB", "#16A34A", "#F59E0B", "#DC2626"];
@@ -31,6 +34,7 @@ export default function Dashboard() {
   const { region } = useRegion();
   const [costItems] = useLocalStorage<ItemCosto[]>("costItems", costItemsSeed);
   const [propuestas] = useLocalStorage<PropuestaCloud[]>("propuestas", []);
+  const [mostrarPreview, setMostrarPreview] = useState(false);
 
   const estados = ["correcto", "revision", "problema"] as const;
   const dataSeguridad = estados.map((e) => ({
@@ -40,30 +44,42 @@ export default function Dashboard() {
 
   const problemas = indicadoresSeguridad.filter((i) => i.estado === "problema").length;
   const estadoGeneral = problemas > 0 ? "problema" : "correcto";
+  const estadoSeguridadTexto = estadoGeneral === "correcto" ? "Estable" : "Requiere atención";
 
   const totalMensual = useMemo(() => costItems.reduce((a, i) => a + i.costoMensual, 0), [costItems]);
   const totalAnual = totalMensual * 12;
 
   const tendencia = useMemo(() => generarTendencia(totalMensual), [totalMensual]);
   const desglose = useMemo(() => costosPorCategoria(costItems), [costItems]);
+  const eventos = useMemo(() => construirActividad(costItems, propuestas), [costItems, propuestas]);
+
+  const recursosDesplegados = regiones.reduce((a, r) => a + r.serviciosDesplegados.length, 0);
 
   return (
     <div className="animate-fade-in">
       <Header titulo="Dashboard" subtitulo="Resumen general de la solución Cloud" />
       <div className="space-y-6 p-4 md:p-8">
         {/* Banner de bienvenida */}
-        <div className="rounded-card border border-border bg-card p-5 shadow-card dark:border-slate-700 dark:bg-slate-900">
-          <p className="text-xs font-semibold uppercase tracking-wide text-textsec dark:text-slate-400">
-            Resumen general
-          </p>
-          <p className="mt-1 text-lg font-bold text-textmain dark:text-slate-100">
-            Bienvenido de nuevo, Equipo Cloud
-          </p>
-          <p className="text-sm text-textsec dark:text-slate-400">
-            Región activa: <span className="font-medium text-primary">{region.nombre}</span> · {region.ubicacion},{" "}
-            {region.pais} ·{" "}
-            {new Date().toLocaleDateString("es-PE", { year: "numeric", month: "long", day: "numeric" })}
-          </p>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-border bg-card p-5 shadow-card dark:border-slate-700 dark:bg-slate-900">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-textsec dark:text-slate-400">
+              Resumen general
+            </p>
+            <p className="mt-1 text-lg font-bold text-textmain dark:text-slate-100">
+              Bienvenido de nuevo, Equipo Cloud
+            </p>
+            <p className="text-sm text-textsec dark:text-slate-400">
+              Región activa: <span className="font-medium text-primary">{region.nombre}</span> · {region.ubicacion},{" "}
+              {region.pais} ·{" "}
+              {new Date().toLocaleDateString("es-PE", { year: "numeric", month: "long", day: "numeric" })}
+            </p>
+          </div>
+          <button
+            onClick={() => setMostrarPreview(true)}
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+          >
+            <Download size={16} /> Vista previa del reporte
+          </button>
         </div>
 
         {/* KPIs */}
@@ -100,14 +116,14 @@ export default function Dashboard() {
           />
           <StatCard
             titulo="Estado de seguridad"
-            valor={estadoGeneral === "correcto" ? "Estable" : "Requiere atención"}
+            valor={estadoSeguridadTexto}
             subtitulo={`${problemas} alerta(s) activa(s)`}
             icono="ShieldCheck"
             color={estadoGeneral === "correcto" ? "security" : "alert"}
           />
           <StatCard
             titulo="Recursos Cloud"
-            valor={String(regiones.reduce((a, r) => a + r.serviciosDesplegados.length, 0))}
+            valor={String(recursosDesplegados)}
             subtitulo="Recursos desplegados"
             icono="Layers"
             color="primary"
@@ -244,7 +260,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <div className="rounded-card border border-border bg-card p-5 shadow-card dark:border-slate-700 dark:bg-slate-900 lg:col-span-1">
               <p className="mb-4 font-semibold text-textmain dark:text-slate-100">Actividad reciente</p>
-              <RecentActivity costItems={costItems} propuestas={propuestas} />
+              <RecentActivity eventos={eventos} />
             </div>
             <div className="lg:col-span-2">
               <p className="mb-4 font-semibold text-textmain dark:text-slate-100">Accesos rápidos</p>
@@ -253,6 +269,25 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {mostrarPreview && (
+        <DashboardReportPreviewModal
+          regionNombre={region.nombre}
+          regionUbicacion={region.ubicacion}
+          totalMensual={totalMensual}
+          totalAnual={totalAnual}
+          serviciosEnCostos={costItems.length}
+          regionesActivas={regiones.length}
+          recursosDesplegados={recursosDesplegados}
+          estadoSeguridad={estadoSeguridadTexto}
+          problemas={problemas}
+          tendencia={tendencia}
+          desglose={desglose}
+          dataSeguridad={dataSeguridad}
+          eventos={eventos}
+          onClose={() => setMostrarPreview(false)}
+        />
+      )}
     </div>
   );
 }

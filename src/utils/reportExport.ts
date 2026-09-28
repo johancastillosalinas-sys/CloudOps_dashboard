@@ -5,6 +5,7 @@ import { PropuestaCloud } from "../types/cloud";
 import { PuntajeWA } from "./wellArchitected";
 import { HallazgoSeguridad } from "./securityScore";
 import { complianceChecklist } from "../data/complianceChecklist";
+import { EventoActividad } from "./dashboardActivity";
 
 export const fmt = (n: number) =>
   n.toLocaleString("es-PE", { style: "currency", currency: "USD" });
@@ -269,4 +270,149 @@ export function generarReporteSeguridadPDF(
   );
 
   doc.save(`reporte-seguridad-${new Date().toISOString().slice(0, 10)}.pdf`);
+}
+
+export interface DashboardReportInput {
+  regionNombre: string;
+  regionUbicacion: string;
+  totalMensual: number;
+  totalAnual: number;
+  serviciosEnCostos: number;
+  regionesActivas: number;
+  recursosDesplegados: number;
+  estadoSeguridad: string;
+  problemas: number;
+  tendencia: { mes: string; costo: number }[];
+  desglose: { categoria: string; total: number }[];
+  dataSeguridad: { name: string; value: number }[];
+  eventos: EventoActividad[];
+}
+
+export function generarReporteDashboardPDF(d: DashboardReportInput) {
+  const doc = new jsPDF();
+
+  // Encabezado tipo membrete
+  doc.setFillColor(37, 99, 235);
+  doc.rect(0, 0, 210, 32, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.text("Resumen General - CloudOps Dashboard", 14, 16);
+  doc.setFontSize(10);
+  doc.text(`Región activa: ${d.regionNombre} · ${d.regionUbicacion}`, 14, 24);
+  const fecha = new Date().toLocaleDateString("es-PE", { year: "numeric", month: "long", day: "numeric" });
+  doc.text(fecha, 160, 16);
+
+  // KPIs (3 columnas x 2 filas)
+  doc.setTextColor(30, 41, 59);
+  let y = 42;
+  const kpis = [
+    { label: "Costo mensual", value: fmt(d.totalMensual) },
+    { label: "Costo anual", value: fmt(d.totalAnual) },
+    { label: "Servicios en Costos", value: String(d.serviciosEnCostos) },
+    { label: "Regiones activas", value: String(d.regionesActivas) },
+    { label: "Recursos desplegados", value: String(d.recursosDesplegados) },
+    { label: "Estado de seguridad", value: `${d.estadoSeguridad} (${d.problemas} alerta/s)` },
+  ];
+  const boxWidth = 60;
+  const boxHeight = 20;
+  kpis.forEach((k, i) => {
+    const col = i % 3;
+    const fila = Math.floor(i / 3);
+    const x = 14 + col * (boxWidth + 4);
+    const yBox = y + fila * (boxHeight + 4);
+    doc.setDrawColor(226, 232, 240);
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(x, yBox, boxWidth, boxHeight, 3, 3, "FD");
+    doc.setFontSize(7.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text(k.label, x + 4, yBox + 7);
+    doc.setFontSize(11);
+    doc.setTextColor(30, 41, 59);
+    doc.text(k.value, x + 4, yBox + 15);
+  });
+
+  y += 2 * (boxHeight + 4) + 8;
+
+  // Tendencia de costos (barras dibujadas a mano)
+  doc.setFontSize(11);
+  doc.setTextColor(30, 41, 59);
+  doc.text("Tendencia de costos (referencial)", 14, y);
+  y += 7;
+  const maxCosto = Math.max(...d.tendencia.map((t) => t.costo), 1);
+  d.tendencia.forEach((t) => {
+    const barWidth = (t.costo / maxCosto) * 110;
+    doc.setFontSize(8);
+    doc.setTextColor(71, 85, 105);
+    doc.text(t.mes, 14, y + 3.5);
+    doc.setFillColor(37, 99, 235);
+    doc.rect(40, y, Math.max(barWidth, 1), 4, "F");
+    doc.setTextColor(30, 41, 59);
+    doc.text(fmt(t.costo), 40 + 114, y + 3.5);
+    y += 7;
+  });
+
+  y += 6;
+
+  // Desglose por categoría
+  autoTable(doc, {
+    startY: y,
+    head: [["Categoría", "Costo mensual", "% del total"]],
+    body: d.desglose.map((item) => [
+      item.categoria,
+      fmt(item.total),
+      `${d.totalMensual > 0 ? ((item.total / d.totalMensual) * 100).toFixed(1) : "0.0"}%`,
+    ]),
+    headStyles: { fillColor: [37, 99, 235] },
+    styles: { fontSize: 8 },
+    margin: { left: 14, right: 14 },
+  });
+
+  y = ((doc as any).lastAutoTable?.finalY ?? y) + 10;
+
+  // Resumen de seguridad
+  doc.setFontSize(11);
+  doc.setTextColor(30, 41, 59);
+  doc.text("Resumen de seguridad", 14, y);
+  autoTable(doc, {
+    startY: y + 4,
+    head: [["Estado", "Cantidad"]],
+    body: d.dataSeguridad.map((s) => [s.name, String(s.value)]),
+    headStyles: { fillColor: [22, 163, 74] },
+    styles: { fontSize: 8 },
+    margin: { left: 14, right: 14 },
+  });
+
+  y = ((doc as any).lastAutoTable?.finalY ?? y) + 10;
+
+  // Actividad reciente
+  doc.setFontSize(11);
+  doc.setTextColor(30, 41, 59);
+  doc.text("Actividad reciente", 14, y);
+  y += 6;
+  doc.setFontSize(8);
+  if (d.eventos.length === 0) {
+    doc.setTextColor(148, 163, 184);
+    doc.text("Sin actividad registrada.", 14, y);
+    y += 5;
+  } else {
+    d.eventos.forEach((e) => {
+      doc.setFillColor(37, 99, 235);
+      doc.circle(16, y - 1.5, 1, "F");
+      doc.setTextColor(30, 41, 59);
+      doc.text(e.titulo, 20, y);
+      doc.setTextColor(148, 163, 184);
+      doc.text(e.detalle, 20, y + 4);
+      y += 9;
+    });
+  }
+
+  doc.setFontSize(7);
+  doc.setTextColor(148, 163, 184);
+  doc.text(
+    "* La tendencia de costos es una proyección referencial, no corresponde a facturación real de AWS.",
+    14,
+    285
+  );
+
+  doc.save(`resumen-dashboard-${new Date().toISOString().slice(0, 10)}.pdf`);
 }
