@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { Bell, UserCircle, Moon, Sun, AlertTriangle, XCircle, CheckCheck } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Bell, UserCircle, Moon, Sun, AlertTriangle, XCircle, CheckCheck, LogOut } from "lucide-react";
 import { useDarkMode } from "../hooks/useDarkMode";
 import { useRegion } from "../context/RegionContext";
 import { useNotifications } from "../hooks/useNotifications";
+import { useAuth } from "../context/AuthContext";
 import { regiones } from "../data/awsServices";
 import { flagCodeFor } from "../utils/countryFlags";
 import CustomSelect, { SelectOption } from "./CustomSelect";
@@ -23,7 +25,17 @@ export default function Header({ titulo, subtitulo }: HeaderProps) {
   const { isDark, toggle } = useDarkMode();
   const { regionId, setRegionId } = useRegion();
   const { notifications, unreadCount, markAllRead, isRead } = useNotifications();
+  const { email, logout } = useAuth();
+  const navigate = useNavigate();
   const [panelAbierto, setPanelAbierto] = useState(false);
+  const [menuUsuarioAbierto, setMenuUsuarioAbierto] = useState(false);
+
+  const nombreMostrado = email ? email.split("@")[0] : "Equipo Cloud";
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-white/90 px-4 py-4 backdrop-blur dark:border-slate-700 dark:bg-slate-900/90 md:px-8">
@@ -68,10 +80,7 @@ export default function Header({ titulo, subtitulo }: HeaderProps) {
 
           {panelAbierto && (
             <>
-              <div
-                className="fixed inset-0 z-10"
-                onClick={() => setPanelAbierto(false)}
-              />
+              <div className="fixed inset-0 z-10" onClick={() => setPanelAbierto(false)} />
               <div className="animate-dropdown absolute right-0 z-20 mt-2 w-80 max-w-[90vw] rounded-card border border-border bg-white p-3 shadow-card dark:border-slate-700 dark:bg-slate-900">
                 <div className="mb-2 flex items-center justify-between">
                   <p className="font-semibold text-textmain dark:text-slate-100">Notificaciones</p>
@@ -94,9 +103,7 @@ export default function Header({ titulo, subtitulo }: HeaderProps) {
                       <li
                         key={n.id}
                         className={`flex gap-2 rounded-lg p-2 text-sm ${
-                          isRead(n.id)
-                            ? "opacity-60"
-                            : "bg-slate-50 dark:bg-slate-800/70"
+                          isRead(n.id) ? "opacity-60" : "bg-slate-50 dark:bg-slate-800/70"
                         }`}
                       >
                         {n.nivel === "problema" ? (
@@ -117,16 +124,36 @@ export default function Header({ titulo, subtitulo }: HeaderProps) {
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <UserCircle className="text-textsec dark:text-slate-300" size={30} />
-          <div className="hidden text-left sm:block">
-            <p className="text-sm font-semibold leading-tight dark:text-slate-100">
-              Equipo Cloud
-            </p>
-            <p className="text-xs leading-tight text-textsec dark:text-slate-400">
-              Administrador
-            </p>
-          </div>
+        {/* Usuario / cerrar sesión */}
+        <div className="relative">
+          <button
+            onClick={() => setMenuUsuarioAbierto((v) => !v)}
+            className="flex items-center gap-2 rounded-lg p-1 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            <UserCircle className="text-textsec dark:text-slate-300" size={30} />
+            <div className="hidden text-left sm:block">
+              <p className="max-w-[140px] truncate text-sm font-semibold capitalize leading-tight dark:text-slate-100">
+                {nombreMostrado}
+              </p>
+              <p className="max-w-[140px] truncate text-xs leading-tight text-textsec dark:text-slate-400">
+                {email ?? "Administrador"}
+              </p>
+            </div>
+          </button>
+
+          {menuUsuarioAbierto && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setMenuUsuarioAbierto(false)} />
+              <div className="animate-dropdown absolute right-0 z-20 mt-2 w-48 rounded-card border border-border bg-white p-1.5 shadow-card dark:border-slate-700 dark:bg-slate-900">
+                <button
+                  onClick={handleLogout}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-alert transition-colors hover:bg-red-50 dark:hover:bg-red-500/10"
+                >
+                  <LogOut size={15} /> Cerrar sesión
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </header>

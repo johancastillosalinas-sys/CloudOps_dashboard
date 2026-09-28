@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, NavLink } from "react-router-dom";
+import { Routes, Route, Navigate, NavLink, Outlet } from "react-router-dom";
 import {
   LayoutDashboard,
   ClipboardList,
@@ -9,6 +9,8 @@ import {
   Boxes,
 } from "lucide-react";
 import Sidebar from "./components/Sidebar";
+import ProtectedRoute from "./components/ProtectedRoute";
+import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Planning from "./pages/Planning";
 import Costs from "./pages/Costs";
@@ -28,23 +30,12 @@ const mobileLinks = [
   { to: "/services", Icon: Boxes },
 ];
 
-export default function App() {
+function DashboardLayout() {
   return (
     <div className="min-h-screen bg-bg dark:bg-slate-950">
       <Sidebar />
       <div className="pb-16 md:ml-64 md:pb-0">
-        <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/planning" element={<Planning />} />
-          <Route path="/costs" element={<Costs />} />
-          <Route path="/infrastructure" element={<Infrastructure />} />
-          <Route path="/security" element={<Security />} />
-          <Route path="/network" element={<NetworkPage />} />
-          <Route path="/services" element={<Services />} />
-          <Route path="/services/:id" element={<ServiceDetail />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
+        <Outlet />
       </div>
 
       {/* Navegación móvil */}
@@ -62,5 +53,28 @@ export default function App() {
         ))}
       </nav>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+
+      <Route element={<ProtectedRoute />}>
+        <Route element={<DashboardLayout />}>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/planning" element={<Planning />} />
+          <Route path="/costs" element={<Costs />} />
+          <Route path="/infrastructure" element={<Infrastructure />} />
+          <Route path="/security" element={<Security />} />
+          <Route path="/network" element={<NetworkPage />} />
+          <Route path="/services" element={<Services />} />
+          <Route path="/services/:id" element={<ServiceDetail />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Route>
+      </Route>
+    </Routes>
   );
 }
