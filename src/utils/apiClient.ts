@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
+const API_URL = import.meta.env.VITE_API_URL ?? "";
 
 interface ApiOptions extends RequestInit {
   body?: any;
@@ -27,7 +27,7 @@ export async function apiFetch(path: string, options: ApiOptions = {}) {
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    throw new Error(data.error || "Ocurrió un error inesperado. Intenta de nuevo.");
+    throw new Error(data.error || data.mensaje || "Ocurrió un error inesperado. Intenta de nuevo.");
   }
 
   return data;
