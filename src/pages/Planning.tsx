@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { PlusCircle, ArrowLeft, ArrowRight, Search, Sparkles, TrendingUp } from "lucide-react";
+import { PlusCircle, ArrowLeft, ArrowRight, Search, Sparkles, TrendingUp, AlertCircle, RefreshCcw } from "lucide-react";
 import Header from "../components/Header";
 import CustomSelect, { SelectOption } from "../components/CustomSelect";
 import StepIndicator from "../components/planning/StepIndicator";
@@ -7,7 +7,7 @@ import ArchitecturePreview from "../components/planning/ArchitecturePreview";
 import WellArchitectedScore from "../components/planning/WellArchitectedScore";
 import PropuestaCard from "../components/planning/PropuestaCard";
 import PropuestaPreviewModal from "../components/planning/PropuestaPreviewModal";
-import { EstadoPropuesta, PropuestaCloud } from "../types/cloud";
+import { PropuestaCloud } from "../types/cloud";
 import { regiones, catalogoServiciosDisponibles } from "../data/awsServices";
 import { recomendacionesPorTipo } from "../data/serviceRecommendations";
 import { slaInfo } from "../data/slaInfo";
@@ -15,7 +15,7 @@ import { estimarCostoMensual } from "../utils/planningCost";
 import { calcularWellArchitected } from "../utils/wellArchitected";
 import { generarDescripcionServicios } from "../utils/autoDescription";
 import { fmt } from "../utils/reportExport";
-import { useLocalStorage } from "../hooks/useLocalStorage";
+import { usePropuestas } from "../hooks/usePropuestas";
 
 const vacio = {
   nombreSolucion: "",
@@ -63,13 +63,15 @@ const opcionesEstadoFiltro: SelectOption[] = [
 ];
 
 export default function Planning() {
+  const { propuestas, cargando, error, crear, cambiarEstado, eliminar, recargar } = usePropuestas();
+
   const [form, setForm] = useState(vacio);
   const [step, setStep] = useState(0);
-  const [propuestas, setPropuestas] = useLocalStorage<PropuestaCloud[]>("propuestas", []);
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [descripcionAuto, setDescripcionAuto] = useState(true);
   const [propuestaPreview, setPropuestaPreview] = useState<PropuestaCloud | null>(null);
+  const [enviando, setEnviando] = useState(false);
 
   const recomendados = recomendacionesPorTipo[form.tipoAplicacion]?.servicios ?? [];
 
@@ -104,28 +106,39 @@ export default function Planning() {
     [form.serviciosSeleccionados, form.nivelDisponibilidad, form.descripcion, recomendados]
   );
 
-  const registrar = () => {
+  const registrar = async () => {
     if (!form.nombreSolucion.trim()) {
       setStep(0);
       return;
     }
-    const nueva: PropuestaCloud = {
-      id: crypto.randomUUID(),
-      ...form,
-      fecha: new Date().toLocaleDateString("es-PE"),
-      estado: "borrador",
-      costoMensualEstimado: estimado.total,
-    };
-    setPropuestas((p) => [nueva, ...p]);
-    setForm({ ...vacio, serviciosSeleccionados: recomendacionesPorTipo[vacio.tipoAplicacion].servicios });
-    setDescripcionAuto(true);
-    setStep(0);
+    setEnviando(true);
+    try {
+      await crear({ ...form, costoMensualEstimado: estimado.total });
+      setForm({ ...vacio, serviciosSeleccionados: recomendacionesPorTipo[vacio.tipoAplicacion].servicios });
+      setDescripcionAuto(true);
+      setStep(0);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "No se pudo registrar la propuesta.");
+    } finally {
+      setEnviando(false);
+    }
   };
 
-  const cambiarEstado = (id: string, nuevo: EstadoPropuesta) =>
-    setPropuestas((prev) => prev.map((p) => (p.id === id ? { ...p, estado: nuevo } : p)));
+  const manejarCambioEstado = async (id: string, nuevo: PropuestaCloud["estado"]) => {
+    try {
+      await cambiarEstado(id, nuevo);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "No se pudo actualizar el estado.");
+    }
+  };
 
-  const eliminarPropuesta = (id: string) => setPropuestas((prev) => prev.filter((p) => p.id !== id));
+  const manejarEliminar = async (id: string) => {
+    try {
+      await eliminar(id);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "No se pudo eliminar la propuesta.");
+    }
+  };
 
   // KPIs
   const totalPropuestas = propuestas.length;
@@ -150,6 +163,20 @@ export default function Planning() {
     <div className="animate-fade-in">
       <Header titulo="Planificación Cloud" subtitulo="Diseña, estima y registra propuestas de solución Cloud" />
       <div className="space-y-6 p-4 md:p-8">
+        {error && (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-alert dark:border-red-500/30 dark:bg-red-500/10">
+            <span className="flex items-center gap-2">
+              <AlertCircle size={16} /> {error}
+            </span>
+            <button
+              onClick={recargar}
+              className="flex items-center gap-1.5 rounded-lg border border-alert px-2.5 py-1 text-xs font-medium hover:bg-red-100 dark:hover:bg-red-500/20"
+            >
+              <RefreshCcw size={13} /> Reintentar
+            </button>
+          </div>
+        )}
+
         {/* Asistente por pasos */}
         <div className="rounded-card border border-border bg-card p-5 shadow-card dark:border-slate-700 dark:bg-slate-900">
           <StepIndicator pasos={pasos} actual={step} onGo={setStep} />
@@ -410,9 +437,10 @@ export default function Planning() {
               <button
                 type="button"
                 onClick={registrar}
-                className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+                disabled={enviando}
+                className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-60"
               >
-                <PlusCircle size={16} /> Registrar propuesta
+                <PlusCircle size={16} /> {enviando ? "Guardando..." : "Registrar propuesta"}
               </button>
             )}
           </div>
@@ -422,19 +450,23 @@ export default function Planning() {
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <div className="rounded-card border border-border bg-card p-4 shadow-card dark:border-slate-700 dark:bg-slate-900">
             <p className="text-xs text-textsec dark:text-slate-400">Propuestas registradas</p>
-            <p className="mt-1 text-2xl font-bold text-textmain dark:text-slate-100">{totalPropuestas}</p>
+            <p className="mt-1 text-2xl font-bold text-textmain dark:text-slate-100">
+              {cargando ? "···" : totalPropuestas}
+            </p>
           </div>
           <div className="rounded-card border border-border bg-card p-4 shadow-card dark:border-slate-700 dark:bg-slate-900">
             <p className="text-xs text-textsec dark:text-slate-400">Usuarios totales estimados</p>
-            <p className="mt-1 text-2xl font-bold text-textmain dark:text-slate-100">{usuariosTotales}</p>
+            <p className="mt-1 text-2xl font-bold text-textmain dark:text-slate-100">
+              {cargando ? "···" : usuariosTotales}
+            </p>
           </div>
           <div className="rounded-card border border-border bg-card p-4 shadow-card dark:border-slate-700 dark:bg-slate-900">
             <p className="text-xs text-textsec dark:text-slate-400">Costo mensual proyectado</p>
-            <p className="mt-1 text-2xl font-bold text-costs">{fmt(costoTotalMensual)}</p>
+            <p className="mt-1 text-2xl font-bold text-costs">{cargando ? "···" : fmt(costoTotalMensual)}</p>
           </div>
           <div className="rounded-card border border-border bg-card p-4 shadow-card dark:border-slate-700 dark:bg-slate-900">
             <p className="text-xs text-textsec dark:text-slate-400">Servicio más usado</p>
-            <p className="mt-1 truncate text-lg font-bold text-primary">{servicioMasUsado}</p>
+            <p className="mt-1 truncate text-lg font-bold text-primary">{cargando ? "···" : servicioMasUsado}</p>
           </div>
         </div>
 
@@ -457,9 +489,13 @@ export default function Planning() {
         {/* Tarjetas de propuestas */}
         <div>
           <p className="mb-3 font-semibold text-textmain dark:text-slate-100">
-            Propuestas registradas ({propuestasFiltradas.length})
+            Propuestas registradas ({cargando ? "···" : propuestasFiltradas.length})
           </p>
-          {propuestasFiltradas.length === 0 ? (
+          {cargando ? (
+            <div className="rounded-card border border-dashed border-border p-10 text-center text-sm text-textsec dark:border-slate-700 dark:text-slate-400">
+              Cargando tus propuestas desde el servidor...
+            </div>
+          ) : propuestasFiltradas.length === 0 ? (
             <div className="rounded-card border border-dashed border-border bg-card p-8 text-center text-sm text-textsec dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
               {propuestas.length === 0
                 ? "Aún no se han registrado propuestas. Completa el asistente para comenzar."
@@ -472,8 +508,8 @@ export default function Planning() {
                   key={p.id}
                   propuesta={p}
                   onVerDetalle={setPropuestaPreview}
-                  onEliminar={eliminarPropuesta}
-                  onCambiarEstado={cambiarEstado}
+                  onEliminar={manejarEliminar}
+                  onCambiarEstado={manejarCambioEstado}
                 />
               ))}
             </div>

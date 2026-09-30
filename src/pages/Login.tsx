@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Cloud, Mail, Lock, Eye, EyeOff, Moon, Sun, LogIn, ShieldCheck, BarChart3, Globe2 } from "lucide-react";
+import { Cloud, Mail, Lock, Eye, EyeOff, Moon, Sun, LogIn, UserPlus, ShieldCheck, BarChart3, Globe2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useDarkMode } from "../hooks/useDarkMode";
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, register } = useAuth();
   const { isDark, toggle } = useDarkMode();
   const navigate = useNavigate();
   const location = useLocation();
 
+  const [modo, setModo] = useState<"login" | "registro">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [recordarme, setRecordarme] = useState(true);
@@ -35,9 +36,18 @@ export default function Login() {
     }
 
     setCargando(true);
-    await login(email, password, recordarme);
-    setCargando(false);
-    navigate(destino, { replace: true });
+    try {
+      if (modo === "login") {
+        await login(email, password, recordarme);
+      } else {
+        await register(email, password, recordarme);
+      }
+      navigate(destino, { replace: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ocurrió un error inesperado.");
+    } finally {
+      setCargando(false);
+    }
   };
 
   return (
@@ -92,15 +102,51 @@ export default function Login() {
         </button>
 
         <div className="w-full max-w-sm">
-          <div className="mb-8 flex flex-col items-center lg:items-start">
+          <div className="mb-6 flex flex-col items-center lg:items-start">
             <div className="mb-3 flex items-center gap-2 lg:hidden">
               <Cloud className="text-primary" size={26} />
               <p className="text-lg font-bold text-textmain dark:text-slate-100">CloudOps Dashboard</p>
             </div>
-            <p className="text-2xl font-bold text-textmain dark:text-slate-100">Iniciar sesión</p>
-            <p className="mt-1 text-sm text-textsec dark:text-slate-400">
-              Ingresa tus credenciales para acceder al panel
+            <p className="text-2xl font-bold text-textmain dark:text-slate-100">
+              {modo === "login" ? "Iniciar sesión" : "Crear cuenta"}
             </p>
+            <p className="mt-1 text-sm text-textsec dark:text-slate-400">
+              {modo === "login"
+                ? "Ingresa tus credenciales para acceder al panel"
+                : "Regístrate para empezar a usar el dashboard"}
+            </p>
+          </div>
+
+          {/* Toggle login / registro */}
+          <div className="mb-6 flex rounded-lg border border-border p-1 dark:border-slate-700">
+            <button
+              type="button"
+              onClick={() => {
+                setModo("login");
+                setError("");
+              }}
+              className={`flex-1 rounded-md py-1.5 text-sm font-medium transition-colors ${
+                modo === "login"
+                  ? "bg-primary text-white"
+                  : "text-textsec dark:text-slate-400"
+              }`}
+            >
+              Iniciar sesión
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setModo("registro");
+                setError("");
+              }}
+              className={`flex-1 rounded-md py-1.5 text-sm font-medium transition-colors ${
+                modo === "registro"
+                  ? "bg-primary text-white"
+                  : "text-textsec dark:text-slate-400"
+              }`}
+            >
+              Crear cuenta
+            </button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -162,18 +208,22 @@ export default function Login() {
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-60"
             >
               {cargando ? (
-                "Verificando..."
-              ) : (
+                "Procesando..."
+              ) : modo === "login" ? (
                 <>
                   <LogIn size={16} /> Iniciar sesión
+                </>
+              ) : (
+                <>
+                  <UserPlus size={16} /> Crear cuenta
                 </>
               )}
             </button>
           </form>
 
           <p className="mt-6 rounded-lg bg-blue-50 p-3 text-center text-[11px] text-primary dark:bg-blue-500/10">
-            Modo demostración: ingresa cualquier correo con formato válido y una contraseña de al menos 6
-            caracteres. Aún no hay una base de datos conectada.
+            Conectado a tu backend en <code>localhost:4000</code>. Asegúrate de tener corriendo Docker (PostgreSQL)
+            y <code>npm run dev</code> en la carpeta <code>cloudops-backend</code>.
           </p>
         </div>
       </div>

@@ -20,9 +20,8 @@ import RecentActivity from "../components/dashboard/RecentActivity";
 import CategoryBreakdown from "../components/dashboard/CategoryBreakdown";
 import DashboardReportPreviewModal from "../components/dashboard/DashboardReportPreviewModal";
 import { awsServices, regiones, indicadoresSeguridad } from "../data/awsServices";
-import { costItemsSeed } from "../data/costSeed";
-import { ItemCosto, PropuestaCloud } from "../types/cloud";
-import { useLocalStorage } from "../hooks/useLocalStorage";
+import { useCosts } from "../hooks/useCosts";
+import { usePropuestas } from "../hooks/usePropuestas";
 import { useRegion } from "../context/RegionContext";
 import { costosPorCategoria, generarTendencia } from "../utils/costCategoryBreakdown";
 import { construirActividad } from "../utils/dashboardActivity";
@@ -32,8 +31,8 @@ const COLORS = ["#2563EB", "#16A34A", "#F59E0B", "#DC2626"];
 
 export default function Dashboard() {
   const { region } = useRegion();
-  const [costItems] = useLocalStorage<ItemCosto[]>("costItems", costItemsSeed);
-  const [propuestas] = useLocalStorage<PropuestaCloud[]>("propuestas", []);
+  const { items: costItems } = useCosts();
+  const { propuestas } = usePropuestas();
   const [mostrarPreview, setMostrarPreview] = useState(false);
 
   const estados = ["correcto", "revision", "problema"] as const;

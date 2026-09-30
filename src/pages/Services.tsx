@@ -4,10 +4,8 @@ import Header from "../components/Header";
 import ServiceCard from "../components/ServiceCard";
 import ServiceCompareModal from "../components/services/ServiceCompareModal";
 import { awsServices } from "../data/awsServices";
-import { ItemCosto } from "../types/cloud";
-import { useLocalStorage } from "../hooks/useLocalStorage";
 import { useFavorites } from "../hooks/useFavorites";
-import { costItemsSeed } from "../data/costSeed";
+import { useCosts } from "../hooks/useCosts";
 import { serviciosMasUsados } from "../utils/serviceUsage";
 
 export default function Services() {
@@ -20,7 +18,7 @@ export default function Services() {
   const [mostrarComparador, setMostrarComparador] = useState(false);
 
   const { esFavorito, toggleFavorito } = useFavorites();
-  const [costItems] = useLocalStorage<ItemCosto[]>("costItems", costItemsSeed);
+  const { items: costItems } = useCosts();
   const masUsados = useMemo(() => serviciosMasUsados(costItems), [costItems]);
 
   const categorias = ["Todas", ...Array.from(new Set(awsServices.map((s) => s.categoria)))];
@@ -62,11 +60,10 @@ export default function Services() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setSoloFavoritos((v) => !v)}
-              className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
-                soloFavoritos
+              className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${soloFavoritos
                   ? "border-costs bg-amber-50 text-costs dark:bg-amber-500/10"
                   : "border-border text-textsec dark:border-slate-700 dark:text-slate-400"
-              }`}
+                }`}
             >
               <Star size={14} className={soloFavoritos ? "fill-costs" : ""} /> Favoritos
             </button>
@@ -76,11 +73,10 @@ export default function Services() {
                 setModoComparar((v) => !v);
                 setSeleccionComparar([]);
               }}
-              className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
-                modoComparar
+              className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${modoComparar
                   ? "border-primary bg-blue-50 text-primary dark:bg-blue-500/10"
                   : "border-border text-textsec dark:border-slate-700 dark:text-slate-400"
-              }`}
+                }`}
             >
               <Scale size={14} /> Comparar
             </button>
@@ -88,18 +84,16 @@ export default function Services() {
             <div className="flex overflow-hidden rounded-lg border border-border dark:border-slate-700">
               <button
                 onClick={() => setVista("grid")}
-                className={`p-2 transition-colors ${
-                  vista === "grid" ? "bg-primary text-white" : "text-textsec dark:text-slate-400"
-                }`}
+                className={`p-2 transition-colors ${vista === "grid" ? "bg-primary text-white" : "text-textsec dark:text-slate-400"
+                  }`}
                 aria-label="Vista cuadrícula"
               >
                 <LayoutGrid size={16} />
               </button>
               <button
                 onClick={() => setVista("list")}
-                className={`p-2 transition-colors ${
-                  vista === "list" ? "bg-primary text-white" : "text-textsec dark:text-slate-400"
-                }`}
+                className={`p-2 transition-colors ${vista === "list" ? "bg-primary text-white" : "text-textsec dark:text-slate-400"
+                  }`}
                 aria-label="Vista lista"
               >
                 <List size={16} />
@@ -112,11 +106,10 @@ export default function Services() {
               <button
                 key={c}
                 onClick={() => setCategoria(c)}
-                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                  categoria === c
+                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${categoria === c
                     ? "border-primary bg-blue-50 text-primary dark:bg-blue-500/10"
                     : "border-border text-textsec dark:border-slate-700 dark:text-slate-400"
-                }`}
+                  }`}
               >
                 {c}
               </button>
