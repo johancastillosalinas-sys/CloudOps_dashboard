@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, ReactNode } from "react";
-import { apiFetch } from "../utils/apiClient";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -30,20 +29,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setEmail(correo);
   };
 
-  const login = async (correo: string, password: string, recordarme: boolean) => {
-    const data = await apiFetch("/api/auth/login", {
-      method: "POST",
-      body: { email: correo, password },
-    });
-    guardarSesion(data.token, data.email, recordarme);
+  // ⚡ MOCK TEMPORAL: Inicia sesión directamente sin consultar al backend
+  const login = async (correo: string, _password: string, recordarme: boolean) => {
+    const mockToken = "token_demo_local_12345";
+    guardarSesion(mockToken, correo, recordarme);
   };
 
-  const register = async (correo: string, password: string, recordarme: boolean) => {
-    const data = await apiFetch("/api/auth/register", {
-      method: "POST",
-      body: { email: correo, password },
-    });
-    guardarSesion(data.token, data.email, recordarme);
+  // ⚡ MOCK TEMPORAL: Registra e ingresa directamente
+  const register = async (correo: string, _password: string, recordarme: boolean) => {
+    const mockToken = "token_demo_local_12345";
+    guardarSesion(mockToken, correo, recordarme);
   };
 
   const logout = () => {
