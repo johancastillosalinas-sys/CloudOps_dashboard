@@ -2,11 +2,10 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
-// Ajustamos las rutas para importar desde cloudops-backend
-const pool = require("../cloudops-backend/db/pool");
-const authRoutes = require("../cloudops-backend/routes/auth");
-const costosRoutes = require("../cloudops-backend/routes/costos");
-const propuestasRoutes = require("../cloudops-backend/routes/propuestas");
+const pool = require("./db/pool");
+const authRoutes = require("./routes/auth");
+const costosRoutes = require("./routes/costos");
+const propuestasRoutes = require("./routes/propuestas");
 
 const app = express();
 
@@ -31,5 +30,4 @@ app.get("/api/db-health", async (req, res) => {
   }
 });
 
-// En Vercel Serverless se exporta la app en lugar de app.listen()
 module.exports = app;
