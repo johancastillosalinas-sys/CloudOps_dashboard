@@ -24,7 +24,7 @@ export function usePropuestas() {
     cargar();
   }, [cargar]);
 
-  const crear = async (nueva: Omit<PropuestaCloud, "id" | "fecha" | "estado">) => {
+  const crear = async (nueva: Omit<PropuestaCloud, "id" | "fecha" | "estado" | "estadoCosto">) => {
     const creada = await apiFetch("/api/propuestas", { method: "POST", body: nueva });
     setPropuestas((prev) => [creada, ...prev]);
   };
