@@ -36,6 +36,7 @@ export interface PropuestaCloud {
   objetivoMigracion: string;
   fecha: string;
   estado: EstadoPropuesta;
+  estadoCosto: "pendiente" | "aceptado" | "descartado";
   costoMensualEstimado: number;
 }
 

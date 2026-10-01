@@ -13,7 +13,7 @@ import {
   Pie,
   Legend,
 } from "recharts";
-import { PlusCircle, XCircle, FileText, TrendingUp, Info, AlertCircle, RefreshCcw } from "lucide-react";
+import { PlusCircle, XCircle, FileText, TrendingUp, Info, AlertCircle, RefreshCcw, DollarSign, CalendarClock } from "lucide-react";
 import Header from "../components/Header";
 import CostCard from "../components/CostCard";
 import CustomSelect, { SelectOption } from "../components/CustomSelect";
@@ -21,6 +21,10 @@ import ReportPreviewModal from "../components/ReportPreviewModal";
 import { awsServices, catalogoServiciosDisponibles } from "../data/awsServices";
 import { useCosts } from "../hooks/useCosts";
 import { fmt } from "../utils/reportExport";
+import { usePropuestas } from "../hooks/usePropuestas";
+import PropuestaPendienteCard from "../components/costs/PropuestaPendienteCard";
+import ConfirmAcceptModal from "../components/costs/ConfirmAcceptModal";
+import { PropuestaCloud } from "../types/cloud";
 
 const PRECIO_HORA: Record<string, number> = {
   "Amazon EC2": 0.096,
@@ -47,6 +51,11 @@ const COLORS = ["#2563EB", "#F59E0B", "#16A34A", "#DC2626", "#8B5CF6", "#0EA5E9"
 
 export default function Costs() {
   const { items, cargando, error, crear, eliminar, recargar } = useCosts();
+  const { propuestas, decidirCosto } = usePropuestas();
+
+  const [procesandoId, setProcesandoId] = useState<string | null>(null);
+  const [propuestaAConfirmar, setPropuestaAConfirmar] = useState<PropuestaCloud | null>(null);
+
   const [servicio, setServicio] = useState(catalogoServiciosDisponibles[0]);
   const [cantidad, setCantidad] = useState(1);
   const [horas, setHoras] = useState(730);
@@ -54,6 +63,8 @@ export default function Costs() {
   const [mostrarPreview, setMostrarPreview] = useState(false);
   const [agregado, setAgregado] = useState(false);
   const [enviando, setEnviando] = useState(false);
+
+  const propuestasPendientes = propuestas.filter((p) => p.estadoCosto === "pendiente" || !p.estadoCosto);
 
   const totalMensual = useMemo(() => items.reduce((a, i) => a + i.costoMensual, 0), [items]);
   const totalAnual = totalMensual * 12;
@@ -65,6 +76,31 @@ export default function Costs() {
   const impactoPct = totalMensual > 0 ? (costoMensualPreview / totalMensual) * 100 : 100;
   const IconPreview =
     (Icons as unknown as Record<string, Icons.LucideIcon>)[detalleServicio?.icono ?? "Box"] ?? Icons.Box;
+
+  const confirmarAceptacion = async () => {
+    if (!propuestaAConfirmar) return;
+    setProcesandoId(propuestaAConfirmar.id);
+    try {
+      await decidirCosto(propuestaAConfirmar.id, "aceptar");
+      await recargar();
+      setPropuestaAConfirmar(null);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "No se pudo aceptar la propuesta.");
+    } finally {
+      setProcesandoId(null);
+    }
+  };
+
+  const manejarDescartar = async (id: string) => {
+    setProcesandoId(id);
+    try {
+      await decidirCosto(id, "descartar");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "No se pudo descartar la propuesta.");
+    } finally {
+      setProcesandoId(null);
+    }
+  };
 
   const agregar = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,18 +147,55 @@ export default function Costs() {
           </div>
         )}
 
+        {/* KPIs principales de costo */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="rounded-card border border-border bg-card p-5 shadow-card dark:border-slate-700 dark:bg-slate-900">
-            <p className="text-sm text-textsec dark:text-slate-400">Costo mensual total</p>
-            <p className="mt-1 text-3xl font-bold text-costs">{cargando ? "···" : fmt(totalMensual)}</p>
+          <div className="card-transition flex items-start justify-between rounded-card border border-border bg-card p-5 shadow-card dark:border-slate-700 dark:bg-slate-900">
+            <div>
+              <p className="text-sm font-medium text-textsec dark:text-slate-400">Costo mensual total</p>
+              <p className="mt-1 text-3xl font-bold text-costs">{cargando ? "···" : fmt(totalMensual)}</p>
+              <p className="mt-1 text-xs text-textsec dark:text-slate-400">
+                {cargando ? "Cargando..." : `${items.length} servicio(s) activo(s)`}
+              </p>
+            </div>
+            <span className="rounded-lg bg-amber-50 p-2.5 dark:bg-amber-500/10">
+              <DollarSign className="text-costs" size={20} />
+            </span>
           </div>
-          <div className="rounded-card border border-border bg-card p-5 shadow-card dark:border-slate-700 dark:bg-slate-900">
-            <p className="text-sm text-textsec dark:text-slate-400">Costo anual proyectado</p>
-            <p className="mt-1 text-3xl font-bold text-textmain dark:text-slate-100">
-              {cargando ? "···" : fmt(totalAnual)}
-            </p>
+
+          <div className="card-transition flex items-start justify-between rounded-card border border-border bg-card p-5 shadow-card dark:border-slate-700 dark:bg-slate-900">
+            <div>
+              <p className="text-sm font-medium text-textsec dark:text-slate-400">Costo anual proyectado</p>
+              <p className="mt-1 text-3xl font-bold text-textmain dark:text-slate-100">
+                {cargando ? "···" : fmt(totalAnual)}
+              </p>
+              <p className="mt-1 text-xs text-textsec dark:text-slate-400">Proyección a 12 meses</p>
+            </div>
+            <span className="rounded-lg bg-blue-50 p-2.5 dark:bg-blue-500/10">
+              <CalendarClock className="text-primary" size={20} />
+            </span>
           </div>
         </div>
+
+        {/* Propuestas pendientes de aprobación */}
+        {propuestasPendientes.length > 0 && (
+          <div>
+            <p className="mb-3 font-semibold text-textmain dark:text-slate-100">
+              Propuestas pendientes de aprobación ({propuestasPendientes.length})
+            </p>
+            <div className="space-y-3">
+              {propuestasPendientes.map((p) => (
+                <PropuestaPendienteCard
+                  key={p.id}
+                  propuesta={p}
+                  totalMensualActual={totalMensual}
+                  onAceptar={setPropuestaAConfirmar}
+                  onDescartar={manejarDescartar}
+                  procesando={procesandoId === p.id}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         {cargando ? (
           <div className="rounded-card border border-dashed border-border p-10 text-center text-sm text-textsec dark:border-slate-700 dark:text-slate-400">
@@ -330,6 +403,15 @@ export default function Costs() {
           totalMensual={totalMensual}
           totalAnual={totalAnual}
           onClose={() => setMostrarPreview(false)}
+        />
+      )}
+      {propuestaAConfirmar && (
+        <ConfirmAcceptModal
+          propuesta={propuestaAConfirmar}
+          totalMensualActual={totalMensual}
+          onConfirmar={confirmarAceptacion}
+          onCerrar={() => setPropuestaAConfirmar(null)}
+          procesando={procesandoId === propuestaAConfirmar.id}
         />
       )}
     </div>
