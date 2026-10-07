@@ -1,11 +1,10 @@
-const express = require("express");
-const pool = require("../db/pool");
-const authMiddleware = require("../middleware/auth");
+import express from "express";
+import pool from "../db/pool.js";
+import authMiddleware from "../middleware/auth.js";
 
 const router = express.Router();
-router.use(authMiddleware); // TODAS las rutas de este archivo requieren estar autenticado
+router.use(authMiddleware);
 
-// Convierte una fila de la base de datos al formato que ya usa tu frontend
 function mapCosto(row) {
   return {
     id: String(row.id),
@@ -19,7 +18,6 @@ function mapCosto(row) {
   };
 }
 
-// GET /api/costos — lista solo los costos del usuario autenticado
 router.get("/", async (req, res) => {
   try {
     const resultado = await pool.query(
@@ -33,7 +31,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-// POST /api/costos — crea un costo nuevo, atado al usuario autenticado
 router.post("/", async (req, res) => {
   const { servicio, cantidad, horasEstimadas, costoUnitario, costoMensual, costoAnual } = req.body;
 
@@ -54,7 +51,6 @@ router.post("/", async (req, res) => {
   }
 });
 
-// DELETE /api/costos/:id — elimina, solo si le pertenece al usuario autenticado
 router.delete("/:id", async (req, res) => {
   try {
     await pool.query("DELETE FROM costos WHERE id = $1 AND usuario_id = $2", [req.params.id, req.usuario.id]);
@@ -65,4 +61,4 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

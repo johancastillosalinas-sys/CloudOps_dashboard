@@ -1,11 +1,10 @@
-const express = require("express");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const pool = require("../db/pool");
+import express from "express";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import pool from "../db/pool.js";
 
 const router = express.Router();
 
-// POST /api/auth/register — crea un usuario nuevo
 router.post("/register", async (req, res) => {
   const { email, password } = req.body;
 
@@ -19,7 +18,7 @@ router.post("/register", async (req, res) => {
       return res.status(409).json({ error: "Ya existe una cuenta con ese correo." });
     }
 
-    const passwordHash = await bcrypt.hash(password, 10); // 10 = costo de cifrado (estándar)
+    const passwordHash = await bcrypt.hash(password, 10);
 
     const resultado = await pool.query(
       "INSERT INTO usuarios (email, password_hash) VALUES ($1, $2) RETURNING id, email",
@@ -38,7 +37,6 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// POST /api/auth/login — verifica credenciales existentes
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -70,4 +68,4 @@ router.post("/login", async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

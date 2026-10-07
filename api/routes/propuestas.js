@@ -1,6 +1,6 @@
-const express = require("express");
-const pool = require("../db/pool");
-const authMiddleware = require("../middleware/auth");
+import express from "express";
+import pool from "../db/pool.js";
+import authMiddleware from "../middleware/auth.js";
 
 const router = express.Router();
 router.use(authMiddleware);
@@ -83,9 +83,8 @@ router.patch("/:id/estado", async (req, res) => {
   }
 });
 
-// PATCH /api/propuestas/:id/costo — Aceptar o descartar una propuesta pendiente
 router.patch("/:id/costo", async (req, res) => {
-  const { accion } = req.body; // "aceptar" | "descartar"
+  const { accion } = req.body;
 
   if (!["aceptar", "descartar"].includes(accion)) {
     return res.status(400).json({ error: "Acción inválida. Usa 'aceptar' o 'descartar'." });
@@ -152,4 +151,4 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

@@ -1,11 +1,12 @@
-const express = require("express");
-const cors = require("cors");
-require("dotenv").config();
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+dotenv.config();
 
-const pool = require("./db/pool");
-const authRoutes = require("./routes/auth");
-const costosRoutes = require("./routes/costos");
-const propuestasRoutes = require("./routes/propuestas");
+import pool from "./db/pool.js";
+import authRoutes from "./routes/auth.js";
+import costosRoutes from "./routes/costos.js";
+import propuestasRoutes from "./routes/propuestas.js";
 
 const app = express();
 
@@ -30,4 +31,4 @@ app.get("/api/db-health", async (req, res) => {
   }
 });
 
-module.exports = app;
+export default app;
